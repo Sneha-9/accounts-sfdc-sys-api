@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="implementation-test-suite.xml" />
+	<munit:test name="create-account-success-testcase" doc:id="48285290-656f-4e82-99a0-e35bc8ce5734" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Create Account Call" doc:id="eb21026a-b24d-4488-b326-5cfe3a264ef1" processor="salesforce:create">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="76f5cabf-18bd-4ccd-9e5e-0bef5cb1fcdc" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://createAccount/response.json')]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Input" doc:id="3c9530fc-e7be-4443-af5d-5e02391e55c9" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://createAccount/initialpayload.json')]" />
+				<munit:attributes value='#[{"headers":{"correlationId": "123"} }]' />
+			</munit:set-event>
+			<flow-ref doc:name="Refer to create-account-flow" doc:id="22498fc3-7ce4-4e43-9e0a-c562ad130960" name="create-account-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="dfaf7a74-f9b3-4011-86c1-20c0fe522bd0" processor="logger">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b3669c61-da19-4eee-9843-e6150880cda3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="create-account-error-testcase" doc:id="562412ec-283e-4638-886d-2c3eb9667b2a" description="Test" expectedErrorType="ANY">
+			<munit:behavior>
+				<munit-tools:mock-when doc:name="Mock Create Account Call" doc:id="9f8bfe56-4bc7-4861-a8de-4980451f9ddf" processor="salesforce:create">
+					<munit-tools:with-attributes>
+						<munit-tools:with-attribute whereValue="76f5cabf-18bd-4ccd-9e5e-0bef5cb1fcdc" attributeName="doc:id" />
+					</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://createAccount/response.json')]" />
+					<munit-tools:error typeId="ANY" />
+				</munit-tools:then-return>
+				</munit-tools:mock-when>
+			</munit:behavior>
+			<munit:execution>
+				<munit:set-event doc:name="Set Input" doc:id="51fcc4a5-d8f8-409d-84e9-7d1642424898">
+					<munit:payload value="#[output application/json --- readUrl('classpath://createAccount/initialpayload.json')]" />
+					<munit:attributes value='#[{"headers":{correlationId: "123"} }]' />
+				</munit:set-event>
+				<flow-ref doc:name="Refer to create-account-flow" doc:id="7279f108-1fea-496f-ba03-555610665621" name="create-account-flow" />
+			</munit:execution>
+			<munit:validation>
+				<munit-tools:verify-call doc:name="Verify call" doc:id="440cd738-fe82-43a3-a87f-0ec2d9ab902e" processor="logger">
+					<munit-tools:with-attributes>
+						<munit-tools:with-attribute whereValue="b3669c61-da19-4eee-9843-e6150880cda3" attributeName="doc:id" />
+					</munit-tools:with-attributes>
+				</munit-tools:verify-call>
+			</munit:validation>
+		</munit:test>
+	<munit:test name="fetch-account-success-testcase" doc:id="35b6c0dc-715d-4098-83b2-aed10fde8eef" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="4984dea1-16fe-488a-86fb-21d4d1555d3a" processor="salesforce:query">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="80dade08-a6db-413d-a80e-2dea75e0e5cd" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="f9f7cf0b-8bd8-4e03-8c1c-0439cc47cf07" >
+				<munit:attributes value='#[{headers:{"correlationId": "123"},uriParams: {"accountId" : "123"}}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to fetch-account-details" doc:id="bc2befd7-73d0-4216-916a-bfaca103834e" name="fetch-account-details"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="a339055d-f668-449e-a5bd-8d6c8a64eae7" processor="logger" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="c66267ff-0e80-4929-8f8c-73c4be466048" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="fetch-account-error-testcase" doc:id="1e94b46f-750f-4a46-9740-e9260e86d9e8" description="Test" expectedErrorType="ANY">
+			<munit:behavior>
+				<munit-tools:mock-when doc:name="Mock when" doc:id="1d4c1ce5-92a2-408c-8e84-e471c71cfdfb" processor="salesforce:query">
+					<munit-tools:with-attributes>
+						<munit-tools:with-attribute whereValue="80dade08-a6db-413d-a80e-2dea75e0e5cd" attributeName="doc:id" />
+					</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="ANY" />
+				</munit-tools:then-return>
+				</munit-tools:mock-when>
+			</munit:behavior>
+			<munit:execution>
+				<munit:set-event doc:name="Set Event" doc:id="3e164ba9-6f67-4507-9118-16cea020ef64">
+					<munit:attributes value='#[{uriParams: {"accountId" : "123"}}]' />
+				</munit:set-event>
+				<flow-ref doc:name="Flow-ref to fetch-account-details" doc:id="55808867-723b-4fad-802d-be5b65aa9a04" name="fetch-account-details" />
+			</munit:execution>
+			<munit:validation>
+				<munit-tools:verify-call doc:name="Verify call" doc:id="c64bea9d-e90a-4948-a419-eabe0f423ae2" processor="logger" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="5c472c1b-33de-471d-a6b9-3d5d33c315e8" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				</munit-tools:verify-call>
+			</munit:validation>
+		</munit:test>
+
+
+</mule>

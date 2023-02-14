@@ -1,0 +1,1 @@
+Select Name,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,email__c, Fax, Phone, AccountNumber from Account where id = ':id' 

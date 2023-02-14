@@ -1,0 +1,14 @@
+[
+  {
+    "Name": "sneha",
+    "email__c": "ab123c@xyz.com",
+    "AccountNumber": "1045",
+    "Phone": "90312893295",
+    "Fax": "21312452",
+    "BillingStreet": "High Street",
+    "BillingCity": "Pune",
+    "BillingPostalCode": "500099",
+    "BillingCountry": "India",
+    "BillingState": "Maharrasthra"
+  }
+]

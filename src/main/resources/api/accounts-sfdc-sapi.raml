@@ -1,0 +1,26 @@
+#%RAML 1.0
+title: Accounts SFDC System API
+version : v1
+description: This api is used to create and fetch accounts in Salesforce
+
+resourceTypes:
+  accountCreateDetails : !include /resourceTypes/accountCreateResourceType.raml
+  accountGetDetails: !include /resourceTypes/accountGetResourceType.raml
+
+traits:
+  errorTraits: !include   /traits/errorResponsesTrait.raml
+  headersTraits: !include /traits/apiHeadersTrait.raml
+
+
+
+/accounts:
+  displayName: Accounts
+  description: This resource is used to create account in Salesforce
+  type: accountCreateDetails 
+  is: [errorTraits, headersTraits] 
+
+  /{accountId}:
+    displayName: Account Id
+    description: This resource is used to retrieve account details from Salesforce
+    type: accountGetDetails
+    is: [errorTraits, headersTraits] 

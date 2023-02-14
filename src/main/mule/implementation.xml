@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="create-account-flow" doc:id="d4ce2955-c657-4fdc-9ede-7e432c9c6a17" >
+		<set-variable value="#[attributes.headers.correlationId]" doc:name="correlationId" doc:id="a81627d8-1b68-4cd7-90a3-e7c4bff03af3" variableName="correlationId"/>
+		<logger level="INFO" doc:name="LOG Start Flow to create account in SF" doc:id="bb264341-ef18-4a87-b35c-f39ad8b77018" message='#["call started in system api to create account in SFDC " ++ (vars.correlationId default "")]'/>
+		<ee:transform doc:name="DW Set Payload To Create Account In SF" doc:id="ed86f3b0-0cec-4ec1-8d2e-9125c2e99fca" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java 
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create type="Account" doc:id="76f5cabf-18bd-4ccd-9e5e-0bef5cb1fcdc" config-ref="Salesforce_Config" doc:name="Create Account in Salesforce" />
+		<choice doc:name="Choice" doc:id="5fcbcdea-e5c3-41c4-b75d-689cf934e6f8" >
+			<when expression="#[payload.items[0].successful ~= true]">
+				<ee:transform doc:name="DW Transform SF Response in Json Format" doc:id="196d4ae1-c27c-49e5-bfe1-7699bd5aa829">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="LOG End Call to create account in SF" doc:id="b3669c61-da19-4eee-9843-e6150880cda3" message='#["call ended in system api to create account in SF  " ++ (vars.correlationId default "")]' />
+			</when>
+			<when expression='#[payload.items[0].statusCode contains   "DUPLICATES_DETECTED"]'>
+				<raise-error doc:name="Raise error when duplicate records detected" doc:id="e9ef915c-c5c3-497d-bf08-74b93661762d" type="CREATE:DUPLICATE_ENTRY" description='"Account Already Exists"' />
+				<logger level="ERROR" doc:name="LOG Error" doc:id="4d0fc755-2e32-4e3a-a021-03c1f5adeec0" message='#[" Error in ssalesforce system api : Duplicate Records Detected"]'/>
+			</when>
+			<when expression='#[payload.items[0].statusCode contains   "REQUIRED_FIELD_MISSING"]'>
+				<raise-error doc:name="Raise error when required fields are missing" doc:id="2fa2b341-bca3-4bc4-a19b-1de98bcd5a1b" type="CREATE:REQUIRED_FIELD_MISSING" description='"Requried fields are null or missing"' />
+				<logger level="ERROR" doc:name="LOG Error" doc:id="99fe0bd9-79e8-4b04-801f-e81fbcdb2895" message='#[" Error in salesforce system api :Required fields are missing"]' />
+			</when>
+			<otherwise>
+				<raise-error doc:name="Raise error incase of any mismatch of data content" doc:id="62c70a87-d61f-4552-aff4-78e57330d3ce" type="CREATE:DATA_INVALID"/>
+				<logger level="ERROR" doc:name="LOG Error" doc:id="22c6976c-77f5-4dde-9c01-93a95ed82e67" message='#["Error in salesforce system api; Data invalid"]'/>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e8b35161-169a-49da-b564-01db97447dfb" type="CREATE:DUPLICATE_ENTRY">
+				<ee:transform doc:name="DW Set Error Message" doc:id="8667219a-0e48-4b2d-8878-d2a518d582b5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"returnCode": 500,
+	"returnCodeDescription": error.muleMessage.payload.returnCodeDescription default error.description,
+	"status": "ERROR",
+	"correlationId": vars.correlationId,
+	"message" : "Account already exists"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="ERROR" doc:name="LOG Error" doc:id="bfb8848d-0d15-4f60-9b3a-b515f5595070" message='#["Error: Acccount already exists"]'/>
+				</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e3e8439a-73da-44fc-a9ee-52e705c611da" type="CREATE:REQUIRED_FIELD_MISSING">
+				<ee:transform doc:name="DW Set Error Message" doc:id="2352aa2d-c166-48cf-a30f-584d606a48bd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"returnCode": 500,
+	"returnCodeDescription": error.muleMessage.payload.returnCodeDescription default error.description,
+	"status": "ERROR",
+	"correlationId": vars.correlationId,
+	"message" : "Required fields are missing"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="ERROR" doc:name="LOG Error" doc:id="cf498748-09bc-4dfa-b7db-af34f8b0e049" message='#["Error while creating an account because of required field missing"]'/>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="206a4e10-62a8-4a76-93ea-fb16c1576545" type="CREATE:DATA_INVALID">
+				<ee:transform doc:name="DW Prepare Error Message" doc:id="5df58884-baab-4424-8356-38a441d0abfd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"returnCode": 500,
+	"returnCodeDescription": error.muleMessage.payload.returnCodeDescription default error.description,
+	"status": "ERROR",
+	"correlationId": attributes.headers.correlationId,
+	"message" : "One or more field is incorrect. Please enter valid input"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="ERROR" doc:name="LOG Error" doc:id="1815f7b3-198c-4129-9758-c35293584566" message='#["Error in salesforce while passing incorrect fields"]'/>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bb71c965-02cd-47d6-9246-50c3141e6ee0" type="ANY">
+				<ee:transform doc:name="DW Prepare Error Message" doc:id="c3f4ed00-d57b-47c9-80cf-66abfced179b">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"returnCode": 500,
+	"returnCodeDescription": error.muleMessage.payload.returnCodeDescription default error.description,
+	"status": "ERROR",
+	"correlationId": attributes.headers.correlationId
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				<logger level="ERROR" doc:name="LOG Error Message" doc:id="1879dc05-3742-41ab-a058-74f2876f97c3" message='#["Error occurred while creating account in system api " ++ (vars.correlationId default "")]' />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="fetch-account-details" doc:id="81343b9a-8af4-4270-b903-1008fd7e556b" >
+		<set-variable value="#[attributes.headers.correlationId]" doc:name="correlationId" doc:id="1f574b86-24c6-49a2-8a4a-f4a882c437bf" variableName="correlationId"/>
+		<logger level="INFO" doc:name="LOG Start Flow to query account details" doc:id="6c18a4c8-504b-4905-a183-6d19f0070c53" message='#["call started in system api to fetch account details based on account id "  ++ (vars.correlationId default "")]'/>
+		<salesforce:query doc:name="Query Account Details" doc:id="80dade08-a6db-413d-a80e-2dea75e0e5cd" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[Select Name,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry,email__c, Fax, Phone, AccountNumber from Account where id = ':id' ]]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	"id" : attributes.uriParams.accountId
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="DW Transform Response In Json Format" doc:id="8c8b6d7c-1221-4589-87cb-6c8ea4446081" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="LOG End Flow to query account details" doc:id="c66267ff-0e80-4929-8f8c-73c4be466048" message='#["call ended in system api to fetch account details based on account id" ++ (vars.correlationId default "")]'/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b0deade7-b772-416e-ab53-cd84586bf103" >
+				<ee:transform doc:name="DW Set Error Message" doc:id="8e39f70c-338b-46fc-ab15-3a769ac888ca">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"returnCode": 500,
+	"returnCodeDescription": error.muleMessage.payload.returnCodeDescription default error.description,
+	"status": "ERROR",
+	"correlationId": attributes.headers.correlationId
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				<logger level="ERROR" doc:name="LOG Error Message " doc:id="5c472c1b-33de-471d-a6b9-3d5d33c315e8" message='#["Error occurred while fetching account details in system api" ++ (vars.correlationId default "")]' />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
