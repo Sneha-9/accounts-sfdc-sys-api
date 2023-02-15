@@ -15,7 +15,7 @@
 					<munit-tools:with-attribute whereValue="76f5cabf-18bd-4ccd-9e5e-0bef5cb1fcdc" attributeName="doc:id" />
 				</munit-tools:with-attributes>
 				<munit-tools:then-return >
-					<munit-tools:payload value="#[output application/json --- readUrl('classpath://createAccount/response.json')]" />
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://createAccount/response.json')]" mediaType="application/json" />
 				</munit-tools:then-return>
 			</munit-tools:mock-when>
 		</munit:behavior>
